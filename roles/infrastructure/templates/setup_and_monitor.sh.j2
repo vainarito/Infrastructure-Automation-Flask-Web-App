@@ -1,0 +1,24 @@
+#!/bin/bash
+
+LOG_FILE="{{ monitor_log }}"
+
+
+if systemctl is-active --quiet nginx; then
+    echo "$(date): Nginx is running" >> $LOG_FILE
+else
+    echo "$(date): Nginx is down" >> $LOG_FILE
+fi
+
+if curl -f http://127.0.0.1:5000 > /dev/null 2>&1; then
+    echo "$(date): Flask app is running" >> $LOG_FILE
+else
+    echo "$(date): Flask app is down" >> $LOG_FILE
+fi
+
+if [ -f {{ db_file }} ]; then
+    mkdir -p {{ backup_dir }}
+    cp {{ db_file }} {{ backup_dir }}/database_$(date +%Y%m%d_%H%M%S).db
+    echo "$(date): Database backup created" >> $LOG_FILE
+else
+    echo "$(date): Database file not found" >> $LOG_FILE
+fi

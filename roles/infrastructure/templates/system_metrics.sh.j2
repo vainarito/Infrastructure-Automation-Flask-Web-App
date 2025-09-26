@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Uptime: $(uptime)" >> {{ metrics_log }}
+echo "Disk usage:" >> {{ metrics_log }}
+df -h >> {{ metrics_log }}
+echo "Top processes:" >> {{ metrics_log }}
+top -b -n1 | head -n 20 >> {{ metrics_log }}

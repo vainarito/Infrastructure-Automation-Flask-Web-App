@@ -1,0 +1,7 @@
+/{{ flask_log }} /{{ metrics_log }} /{{ monitor_log }} {
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+}

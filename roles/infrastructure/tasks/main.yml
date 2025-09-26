@@ -1,0 +1,170 @@
+---
+- name: Update packages
+  apt:
+    update_cache: yes
+  become: yes
+  
+- name: Install required packages
+  apt:
+    name: "{{ required_packages }}"
+    state: present
+  become: yes
+
+- name: Clone app repository
+  git:
+    repo: "{{ app_repo }}"
+    dest: "{{ app_dir }}"
+  become_user: devops
+
+- name: Create venv
+  command: python3 -m venv {{ venv_dir }}
+  args:
+    creates: "{{ venv_dir }}"
+  become_user: devops
+
+- name: Install app dependencies
+  pip:
+    requirements: "{{ app_dir }}/requirements.txt"
+    virtualenv: "{{ venv_dir }}"
+  become_user: devops
+
+- name: Copy systemd service
+  template:
+    src: flask-app.service.j2
+    dest: /etc/systemd/system/flask-app.service
+  when: not use_docker
+  notify: Restart flask-app
+
+- name: Copy monitor script
+  template:
+    src: setup_and_monitor.sh.j2
+    dest: "{{ script_dir }}/setup_and_monitor.sh"
+    mode: '0755'
+  become: yes
+
+- name: Copy metrics script
+  template:
+    src: system_metrics.sh.j2
+    dest: "{{ script_dir }}/system_metrics.sh"
+    mode: '0755'
+  become: yes
+
+- name: Set up cron for monitor script
+  cron:
+    name: "Monitor script"
+    cron_file: ansible_monitor
+    user: root
+    job: "{{ cron_monitor }}"
+  become: yes
+
+- name: Set up cron for metrics script
+  cron: 
+    name: "Metrics script"
+    cron_file: ansible_metrics
+    user: root
+    job: "{{ cron_metrics }}"
+  become: yes
+
+- name: Create log files
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: devops
+    group: devops
+  loop:
+    - "{{ flask_log }}"
+    - "{{ metrics_log }}"
+    - "{{ monitor_log }}"
+  become: yes
+
+- name: Copy logrotate config
+  template:
+    src: app_logs.j2
+    dest: /etc/logrotate.d/app_logs
+  become: yes
+
+- name: Configure Nginx
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/{{ nginx_site }}
+  when: not use_docker
+  notify: Restart nginx
+
+- name: Enable Nginx site
+  file:
+    src: /etc/nginx/sites-available/{{ nginx_site }}
+    dest: /etc/nginx/sites-enabled/{{ nginx_site }}
+    state: link
+  when: not use_docker
+  notify: Restart nginx
+
+- name: Remove default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  when: not use_docker
+  notify: Restart nginx
+
+- name: Install Docker
+  apt:
+    name: ["docker.io", "docker-compose"]
+    state: present
+  when: use_docker
+  become: yes
+
+- name: Add devops user to docker group
+  user:
+    name: devops
+    groups: docker
+    append: yes
+  when: use_docker
+  become: yes
+
+- name: Copy Dockerfile
+  template:
+    src: Dockerfile.j2
+    dest: "{{ app_dir }}/Dockerfile"
+  when: use_docker
+
+- name: Copy docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ app_dir }}/docker-compose.yml"
+  when: use_docker
+
+- name: Copy nginx.conf for Docker
+  template:
+    src: nginx.conf.j2
+    dest: "{{ app_dir }}/nginx.conf"
+  when: use_docker
+
+- name: Stop flask-app service in Docker mode
+  systemd:
+    name: flask-app
+    state: stopped
+    enabled: no
+  when: use_docker
+  become: yes
+
+- name: Stop nginx service in Docker mode
+  systemd:
+    name: nginx
+    state: stopped
+    enabled: no
+  when: use_docker
+  become: yes
+
+- name: Run docker-compose
+  command: docker-compose up -d
+  args:
+    chdir: "{{ app_dir }}"
+  when: use_docker
+  become: yes
+
+- name: Stop docker-compose in systemd mode
+  command: docker-compose down
+  args:
+    chdir: "{{ app_dir }}"
+  when: not use_docker
+  become: yes
+  ignore_errors: yes
