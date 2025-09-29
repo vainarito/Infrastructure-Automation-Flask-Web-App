@@ -15,6 +15,7 @@ else
     echo "$(date): Flask app is down" >> $LOG_FILE
 fi
 
+# бэкап базы данных лучше вынести в отдельный скрипт, частота выполнения мониторинга и бэкапа может отличаться
 if [ -f {{ db_file }} ]; then
     mkdir -p {{ backup_dir }}
     cp {{ db_file }} {{ backup_dir }}/database_$(date +%Y%m%d_%H%M%S).db

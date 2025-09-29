@@ -11,3 +11,5 @@ metrics_log: "{{ log_dir }}/system_metrics.log"
 monitor_log: "{{ log_dir }}/system_monitor.log"
 script_dir: "/usr/local/bin"
 nginx_site: "test.local"
+# лучше группировать переменные по смыслу, и по алфавиту внутри групп
+# например, все переменные, связанные с бэкапами, метриками, логами и т.д.
