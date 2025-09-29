@@ -1,4 +1,4 @@
 ---
-required_packages: ['python3-venv', 'git', 'curl', 'nginx']
+required_packages: ['python3-venv', 'git', 'curl', 'nginx'] # nginx устанавливается в любом случае?
 cron_monitor: "*/10 * * * * {{script_dir}}/setup_and_monitor.sh"
 cron_metrics: "*/5 * * * * {{script_dir}}/system_metrics.sh"

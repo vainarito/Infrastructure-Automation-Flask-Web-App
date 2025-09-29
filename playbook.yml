@@ -1,9 +1,9 @@
 ---
 - hosts: all
+#  лучше использовать servers
   become: true
   roles:
     - infrastructure
   vars:
     use_docker: false
-    web_server: nginx
-    
+    web_server: nginx # где это используется?
