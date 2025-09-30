@@ -47,6 +47,13 @@
   become: yes
   ignore_errors: yes
 
+- name: Copy docker-compose systemd service
+  template:
+    src: flask-app-docker.service.j2
+    dest: /etc/systemd/system/flask-app-docker.service
+  become: yes
+  notify: Enable docker compose service
+
 - name: Run docker-compose
   docker_compose:
     project_src: "{{ app_dir }}"

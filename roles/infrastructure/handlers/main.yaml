@@ -12,3 +12,11 @@
     name: nginx
     state: restarted
   become: yes
+
+- name: Enable docker compose service
+  systemd:
+    name: flask-app-docker
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes
