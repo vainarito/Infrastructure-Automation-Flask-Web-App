@@ -1,0 +1,29 @@
+---
+- name: Copy systemd service
+  template:
+    src: flask-app.service.j2
+    dest: /etc/systemd/system/flask-app.service
+  when: not use_docker
+  notify: Restart flask-app
+  
+- name: Configure Nginx
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/{{ nginx_site }}
+  when: not use_docker
+  notify: Restart nginx
+
+- name: Enable Nginx site
+  file:
+    src: /etc/nginx/sites-available/{{ nginx_site }}
+    dest: /etc/nginx/sites-enabled/{{ nginx_site }}
+    state: link
+  when: not use_docker
+  notify: Restart nginx
+
+- name: Remove default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  when: not use_docker
+  notify: Restart nginx

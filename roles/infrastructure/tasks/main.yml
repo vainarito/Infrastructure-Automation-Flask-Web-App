@@ -2,13 +2,57 @@
 - name: Update packages
   apt:
     update_cache: yes
+    force: yes
+  become: yes
+  
+- name: Install ufw
+  apt:
+    name: ufw
+    state: present
+    force: yes
+  become: yes
+
+- name: Allow SSH in firewall
+  ufw:
+    rule: allow
+    port: 22
+    proto: tcp
+  become: yes
+
+- name: Allow HTTP in firewall
+  ufw: 
+    rule: allow
+    port: 80
+    proto: tcp
+  become: yes
+
+- name: Enable firewall
+  ufw:
+    state: enabled
   become: yes
   
 - name: Install required packages
   apt:
     name: "{{ required_packages }}"
     state: present
+    force: yes
   become: yes
+
+- name: Install python3-docker for Ansible docker modules
+  apt:
+    name: python3-docker
+    state: present
+    force: yes
+  become: yes
+  when: use_docker
+
+- name: Install nginx if not using Docker
+  apt:
+    name: "{{ nginx_package }}"
+    state: present
+    force: yes
+  become: yes
+  when: not use_docker
 
 - name: Clone app repository
   git:
@@ -28,13 +72,6 @@
     virtualenv: "{{ venv_dir }}"
   become_user: devops
 
-- name: Copy systemd service
-  template:
-    src: flask-app.service.j2
-    dest: /etc/systemd/system/flask-app.service
-  when: not use_docker
-  notify: Restart flask-app
-
 - name: Copy monitor script
   template:
     src: setup_and_monitor.sh.j2
@@ -46,6 +83,13 @@
   template:
     src: system_metrics.sh.j2
     dest: "{{ script_dir }}/system_metrics.sh"
+    mode: '0755'
+  become: yes
+
+- name: Copy backup script
+  template:
+    src: backup_db.sh.j2
+    dest: "{{ script_dir }}/backup_db.sh"
     mode: '0755'
   become: yes
 
@@ -65,12 +109,21 @@
     job: "{{ cron_metrics }}"
   become: yes
 
+- name: Set up cron for backup script
+  cron:
+    name: "Backup database"
+    cron_file: ansible_backup
+    user: root
+    job: "{{ cron_backup }}"
+  become: yes
+
 - name: Create log files
   file:
     path: "{{ item }}"
     state: touch
-    owner: devops
+    owner: root
     group: devops
+    mode: '0664'
   loop:
     - "{{ flask_log }}"
     - "{{ metrics_log }}"
@@ -83,88 +136,10 @@
     dest: /etc/logrotate.d/app_logs
   become: yes
 
-- name: Configure Nginx
-  template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/sites-available/{{ nginx_site }}
+- name: Include systemd tasks
+  include_tasks: systemd_version.yml
   when: not use_docker
-  notify: Restart nginx
 
-- name: Enable Nginx site
-  file:
-    src: /etc/nginx/sites-available/{{ nginx_site }}
-    dest: /etc/nginx/sites-enabled/{{ nginx_site }}
-    state: link
-  when: not use_docker
-  notify: Restart nginx
-
-- name: Remove default Nginx site
-  file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  when: not use_docker
-  notify: Restart nginx
-
-- name: Install Docker
-  apt:
-    name: ["docker.io", "docker-compose"]
-    state: present
+- name: Include docker tasks
+  include_tasks: docker_version.yml
   when: use_docker
-  become: yes
-
-- name: Add devops user to docker group
-  user:
-    name: devops
-    groups: docker
-    append: yes
-  when: use_docker
-  become: yes
-
-- name: Copy Dockerfile
-  template:
-    src: Dockerfile.j2
-    dest: "{{ app_dir }}/Dockerfile"
-  when: use_docker
-
-- name: Copy docker-compose.yml
-  template:
-    src: docker-compose.yml.j2
-    dest: "{{ app_dir }}/docker-compose.yml"
-  when: use_docker
-
-- name: Copy nginx.conf for Docker
-  template:
-    src: nginx.conf.j2
-    dest: "{{ app_dir }}/nginx.conf"
-  when: use_docker
-
-- name: Stop flask-app service in Docker mode
-  systemd:
-    name: flask-app
-    state: stopped
-    enabled: no
-  when: use_docker
-  become: yes
-
-- name: Stop nginx service in Docker mode
-  systemd:
-    name: nginx
-    state: stopped
-    enabled: no
-  when: use_docker
-  become: yes
-
-- name: Run docker-compose
-  command: docker-compose up -d
-  args:
-    chdir: "{{ app_dir }}"
-  when: use_docker
-  become: yes
-
-- name: Stop docker-compose in systemd mode
-  command: docker-compose down
-  args:
-    chdir: "{{ app_dir }}"
-  when: not use_docker
-  become: yes
-  ignore_errors: yes

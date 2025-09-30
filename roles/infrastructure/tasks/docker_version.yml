@@ -1,0 +1,59 @@
+---
+- name: Install Docker
+  apt:
+    name: ["docker.io", "docker-compose"]
+    state: present
+    force: yes
+  become: yes
+
+- name: Add devops user to docker group
+  user:
+    name: devops
+    groups: docker
+    append: yes
+  become: yes
+
+- name: Reset connection to apply docker group changes
+  meta: reset_connection
+
+- name: Copy Dockerfile
+  template:
+    src: Dockerfile.j2
+    dest: "{{ app_dir }}/Dockerfile"
+
+- name: Copy docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ app_dir }}/docker-compose.yml"
+
+- name: Copy nginx.conf for Docker
+  template:
+    src: nginx.conf.j2
+    dest: "{{ app_dir }}/nginx.conf"
+
+- name: Stop flask-app service in Docker mode
+  systemd:
+    name: flask-app
+    state: stopped
+    enabled: no
+  become: yes
+  ignore_errors: yes
+
+- name: Stop nginx service in Docker mode
+  systemd:
+    name: nginx
+    state: stopped
+    enabled: no
+  become: yes
+  ignore_errors: yes
+
+- name: Run docker-compose
+  docker_compose:
+    project_src: "{{ app_dir }}"
+    state: present
+  become: yes
+  become_user: devops
+  ignore_errors: yes
+  retries: 3
+  delay: 5
+

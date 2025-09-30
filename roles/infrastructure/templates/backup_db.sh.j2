@@ -1,0 +1,11 @@
+#!/bin/bash
+
+LOG_FILE="{{ monitor_log }}"
+
+if [ -f {{ db_file }} ]; then
+    mkdir -p {{ backup_dir }}
+    cp {{ db_file }} {{ backup_dir }}/database_$(date +%Y%m%d_%H%M%S).db
+    echo "$(date): Database backup created" >> $LOG_FILE
+else
+    echo "$(date): Database file not found" >> $LOG_FILE
+fi

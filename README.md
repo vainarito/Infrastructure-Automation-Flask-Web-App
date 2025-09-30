@@ -12,25 +12,23 @@
 
 ## Быстрый старт
 
-1. Клонироватье репозиторий:
+1. Клонировать репозиторий:
    ```bash
    git clone <этот_репозиторий>
    cd <папка_репозитория>
    ```
 2. Подготовить виртуальную машину Ubuntu и создать пользователя `devops` с доступом по SSH-ключу.
-3. Настроить firewall (ufw/firewalld) для открытия порта 80.
-4. Запустить Vagrant для локального теста:
+3. Запустить Vagrant для локального теста:
    ```bash
    vagrant up
+   ```
+4. Запустить Ansible playbook:
+   ```bash
+   ansible-playbook -i task1-infrastructure/inventory.ini task1-infrastructure/playbook.yml   
    ```
 5. Проверить доступность сервера:
    - Веб-приложение: http://localhost:8080
    - Nginx reverse proxy: http://test.local
-
-6. Запустить Ansible playbook:
-   ```bash
-   ansible-playbook -i task1-infrastructure/inventory.ini task1-infrastructure/playbook.yml
-   ```
 
 ## Структура репозитория
 
@@ -39,12 +37,6 @@
 ## Тестирование
 
 Инструкции по тестированию доступны в [документации по тестированию](docs/testing.md).
-
-## Дополнительная документация
-
-- [Архитектура](docs/architecture.md)
-- [Структура репозитория](docs/repo_structure.md)
-- [Тестирование](docs/testing.md)
 
 ## Контакты
 

@@ -1,13 +1,18 @@
 ---
 use_docker: false
-app_repo: "https://github.com/riad-azz/flask-auth-example.git"
+
 app_dir: "/home/devops/flask-auth-example"
-venv_dir: "{{ app_dir }}/venv"
+app_repo: "https://github.com/riad-azz/flask-auth-example.git"
 db_file: "{{ app_dir }}/instance/database.db"
-backup_dir: "/home/devops/backups"
+venv_dir: "{{ app_dir }}/venv"
+
 log_dir: "/var/log"
 flask_log: "{{ log_dir }}/flask.log"
 metrics_log: "{{ log_dir }}/system_metrics.log"
 monitor_log: "{{ log_dir }}/system_monitor.log"
+
+backup_dir: "/home/devops/backups"
+
 script_dir: "/usr/local/bin"
+
 nginx_site: "test.local"
