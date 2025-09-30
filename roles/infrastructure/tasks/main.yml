@@ -38,14 +38,6 @@
     force: yes
   become: yes
 
-- name: Install python3-docker for Ansible docker modules
-  apt:
-    name: python3-docker
-    state: present
-    force: yes
-  become: yes
-  when: use_docker
-
 - name: Install nginx if not using Docker
   apt:
     name: "{{ nginx_package }}"
